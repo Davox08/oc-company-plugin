@@ -1,0 +1,15 @@
+{
+    "X_OCTOBER_ASSETS": {
+        "js": [
+            "http:\/\/dejavuu.test\/modules\/backend\/behaviors\/relationcontroller\/assets\/js\/october.relation.js?v0042e1d5",
+            "http:\/\/dejavuu.test\/modules\/backend\/widgets\/form\/assets\/js\/october.form.js?v0042e1d5"
+        ],
+        "css": [
+            "http:\/\/dejavuu.test\/modules\/backend\/behaviors\/relationcontroller\/assets\/css\/relation.css?v0042e1d5"
+        ],
+        "rss": []
+    },
+    "#Form-field-Invoice-subtotal-group": "\n    \n                    <label for=\"Form-field-Invoice-subtotal\" class=\"form-label\">\n                Subtotal            <\/label>\n        \n        \n        \n        <!-- Widget -->\n    <div\n        id=\"Currency-formSubtotal-subtotal\"\n        class=\"input-group\">\n                    <span\n                class=\"input-group-addon input-group-text\"\n                data-tooltip-text=\"CAD\"            >$<\/span>\n                <input\n            type=\"number\"\n            name=\"Invoice[subtotal]\"\n            id=\"Currency-formSubtotal-textarea-subtotal\"\n            value=\"200\"\n            placeholder=\"\"\n            class=\"form-control input-no-spinner\"\n            autocomplete=\"off\"\n             readonly=\"readonly\"            \/>\n            <\/div>\n\n        \n    \n",
+    "#Form-field-Invoice-tax-group": "\n    \n                    <label for=\"Form-field-Invoice-tax\" class=\"form-label\">\n                GST            <\/label>\n        \n        \n        \n        <!-- Widget -->\n    <div\n        id=\"Currency-formTax-tax\"\n        class=\"input-group\">\n                    <span\n                class=\"input-group-addon input-group-text\"\n                data-tooltip-text=\"CAD\"            >$<\/span>\n                <input\n            type=\"number\"\n            name=\"Invoice[tax]\"\n            id=\"Currency-formTax-textarea-tax\"\n            value=\"10\"\n            placeholder=\"\"\n            class=\"form-control input-no-spinner\"\n            autocomplete=\"off\"\n             readonly=\"readonly\"            \/>\n            <\/div>\n\n        \n    \n",
+    "#Form-field-Invoice-total-group": "\n    \n                    <label for=\"Form-field-Invoice-total\" class=\"form-label\">\n                Total            <\/label>\n        \n        \n        \n        <!-- Widget -->\n    <div\n        id=\"Currency-formTotal-total\"\n        class=\"input-group\">\n                    <span\n                class=\"input-group-addon input-group-text\"\n                data-tooltip-text=\"CAD\"            >$<\/span>\n                <input\n            type=\"number\"\n            name=\"Invoice[total]\"\n            id=\"Currency-formTotal-textarea-total\"\n            value=\"210\"\n            placeholder=\"\"\n            class=\"form-control input-no-spinner\"\n            autocomplete=\"off\"\n             readonly=\"readonly\"            \/>\n            <\/div>\n\n        \n    \n"
+}

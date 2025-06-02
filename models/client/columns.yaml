@@ -1,0 +1,26 @@
+columns:
+    name:
+        label: Name
+        type: text
+        searchable: true
+    email:
+        label: Email
+        type: text
+        searchable: true
+    whatsapp:
+        label: WhatsApp
+        type: text
+        searchable: true
+    address:
+        label: Address
+        type: text
+        searchable: false
+    gst:
+        label: GST
+        type: text
+        searchable: true
+    status:
+        label: Status
+        type: partial
+        path: $/davox/company/controllers/partials/_status_column.htm
+        hidden: true

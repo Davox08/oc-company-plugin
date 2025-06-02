@@ -1,0 +1,4 @@
+# plugins/davox/company/updates/version.yaml
+v1.0.1:
+  - First version of Company
+  - create_tables_1.php

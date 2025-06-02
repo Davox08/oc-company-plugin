@@ -1,0 +1,27 @@
+columns:
+    invoice_number:
+        label: Invoice
+        searchable: true
+        sortable: true
+    issue_date:
+        label: Date
+        type: date
+        format: 'd/M/Y'
+    client_name:
+        label: Client
+        relation: client
+        valueFrom: name
+        searchable: true
+        sortable: true
+    subtotal:
+        label: Sub Total
+        type: number
+        format: '$%2s'
+    tax:
+        label: GST
+        type: number
+        format: '$%2s'
+    total:
+        label: Total
+        type: number
+        format: '$%2s'

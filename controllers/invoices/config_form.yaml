@@ -1,0 +1,31 @@
+# ===================================
+#  Form Behavior Config
+# ===================================
+
+# Record name
+name: Invoice
+
+# Model Form Field configuration
+form: $/davox/company/models/invoice/fields.yaml
+
+# Model Class name
+modelClass: Davox\Company\Models\Invoice
+
+# Default redirect location
+defaultRedirect: davox/company/invoices
+
+# Create page
+create:
+    title: backend::lang.form.create_title
+    redirect: davox/company/invoices/update/:id
+    redirectClose: davox/company/invoices
+
+# Update page
+update:
+    title: backend::lang.form.update_title
+    redirect: davox/company/invoices
+    redirectClose: davox/company/invoices
+
+# Preview page
+preview:
+    title: backend::lang.form.preview_title

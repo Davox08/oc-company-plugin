@@ -1,0 +1,20 @@
+client:
+    label: Cliente
+    view:
+        form: $/davox/company/models/client/fields-relation.yaml
+        toolbarButtons: link|unlink|create
+    manage:
+        form: $/davox/company/models/client/fields.yaml
+        list: $/davox/company/models/client/columns.yaml
+
+
+services:
+    label: Service
+    view:
+        list: $/davox/company/models/service/columns.yaml
+        toolbarButtons: add|remove|create
+    manage:
+        list: $/davox/company/models/service/columns.yaml
+        form: $/davox/company/models/service/fields.yaml
+    pivot:
+        form: $/davox/company/models/service/fields_pivot.yaml

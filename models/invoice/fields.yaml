@@ -1,0 +1,59 @@
+fields:
+    issue_date@create:
+        label: Issue date
+        span: full
+        type: datepicker
+        mode: date
+        default: now
+        format: "d/m/Y"
+    invoice_number@update:
+        label: Invoice number
+        span: auto
+        disabled: true
+        cssClass: "text-muted"
+    issue_date@update:
+        label: Issue date
+        span: auto
+        type: datepicker
+        mode: date
+        default: now
+        format: "d/m/Y"
+        useTimezone: true
+    client@update:
+        label: Client
+        span: full
+        type: relation
+        nameFrom: name
+    services@update:
+        label: Services
+        span: full
+        type: relation
+        nameFrom: name
+        changeHandler: onChangeServices
+    subtotal@update:
+        label: Subtotal
+        span: auto
+        type: number
+        disabled: true
+    tax@update:
+        label: GST
+        span: auto
+        type: number
+        disabled: true
+    total@update:
+        label: Total
+        span: full
+        type: number
+        disabled: true
+    notes@update:
+        label: Notes
+        span: full
+        type: textarea
+        size: tiny
+    pdf_file:
+        label: PDF file
+        type: fileupload
+        mode: file
+        fileTypes: pdf
+        disabled: true
+

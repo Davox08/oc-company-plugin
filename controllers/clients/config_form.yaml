@@ -1,0 +1,31 @@
+# ===================================
+#  Form Behavior Config
+# ===================================
+
+# Record name
+name: Client
+
+# Model Form Field configuration
+form: $/davox/company/models/client/fields.yaml
+
+# Model Class name
+modelClass: Davox\Company\Models\Client
+
+# Default redirect location
+defaultRedirect: davox/company/clients
+
+# Create page
+create:
+    title: backend::lang.form.create_title
+    redirect: davox/company/clients/update/:id
+    redirectClose: davox/company/clients
+
+# Update page
+update:
+    title: backend::lang.form.update_title
+    redirect: davox/company/clients
+    redirectClose: davox/company/clients
+
+# Preview page
+preview:
+    title: backend::lang.form.preview_title

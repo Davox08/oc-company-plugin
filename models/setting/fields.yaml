@@ -1,0 +1,57 @@
+tabs:
+    fields:
+        company_logo:
+            label: Logotipo
+            tab: Empresa
+            type: fileupload
+            mode: image
+            imageWidth: 200
+            imageHeight: 200
+            placeholder: 'assets/images/placeholder.png'
+
+        company_name:
+            label: Nombre Legal
+            tab: Empresa
+            type: text
+            span: full
+            required: true
+
+        company_address:
+            label: Address
+            tab: Empresa
+            span: full
+            type: text
+
+        company_phone:
+            label: Phone
+            tab: Empresa
+            type: text
+            span: left
+            placeholder: '+521234567890'
+
+        company_email:
+            label: Email
+            tab: Empresa
+            type: text
+            span: right
+
+        company_gst:
+            label: GST/Registro Fiscal
+            tab: Empresa
+            type: text
+            span: left
+
+        default_tax_rate:
+            label: Tasa de Impuesto (%)
+            tab: Facturación
+            type: number
+            step: 0.01
+            default: 16
+            span: left
+
+        invoice_prefix:
+            label: Prefijo Factura
+            tab: Facturación
+            type: text
+            span: right
+            default: 'INV'

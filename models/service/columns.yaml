@@ -1,0 +1,10 @@
+columns:
+    name:
+        label: Service
+        type: text
+    pivot[quantity]:
+        label: Quantity
+        type: text
+    pivot[price]:
+        label: Price
+        type: text

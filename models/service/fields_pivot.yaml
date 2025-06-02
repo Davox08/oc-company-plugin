@@ -1,0 +1,15 @@
+fields:
+    pivot[price]:
+        label: Price
+        span: auto
+        type: number
+    pivot[quantity]:
+        label: Quantity
+        span: auto
+        type: number
+        default: 1
+    pivot[description]:
+        label: Description
+        span: full
+        type: textarea
+        size: tiny

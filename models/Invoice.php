@@ -3,10 +3,9 @@
 namespace Davox\Company\Models;
 
 use Model;
-use Illuminate\Support\Facades\Log;
-
+use Carbon\Carbon;
 use Davox\Company\Models\Setting;
-
+use Illuminate\Support\Facades\Log;
 /**
  * Application Model
  *
@@ -100,7 +99,9 @@ class Invoice extends Model
      */
     public function beforeCreate()
     {
-        $this->invoice_number = $this->generateInvoiceNumber();
+        if (empty($this->invoice_number)) {
+            $this->invoice_number = $this->generateInvoiceNumber();
+        }
     }
 
     /**
@@ -110,58 +111,97 @@ class Invoice extends Model
      */
     public function beforeUpdate()
     {
-        $this->invoice_number = $this->updateInvoiceNumberDate($this->issue_date);
+        if ($this->isDirty('issue_date') && !empty($this->invoice_number) && $this->issue_date instanceof \DateTimeInterface) {
+            $newNumber = $this->updateInvoiceNumberDate($this->issue_date);
+            if ($newNumber) {
+                $this->invoice_number = $newNumber;
+            }
+        }
     }
 
     /**
      * Generate the invoice number
+     * @return string
      */
     protected function generateInvoiceNumber(): string
     {
-        // Get the prefix from the settings
         $prefix = Setting::get('invoice_prefix', 'INV');
-        // Get the date part of the invoice number
-        $datePart = $this->issue_date ? $this->issue_date->format('Ymd') : date('Ymd');
-        // Get the last number of the invoice
+
+        $dateToFormat = $this->issue_date ?? Carbon::now();
+        if (!$dateToFormat instanceof \DateTimeInterface) {
+            $dateToFormat = Carbon::parse($dateToFormat);
+        }
+        $datePart = $dateToFormat->format('Ymd');
+
         $lastNumber = self::withTrashed()->count() + 1;
-        // Format the invoice number
-        $invoiceNumber = sprintf('%s-%s-%d', $prefix, $datePart, $lastNumber);
-        // Save the invoice number
-        return $invoiceNumber;
+
+        $invoiceParts = [];
+        if (!empty($prefix)) {
+            $invoiceParts[] = trim($prefix);
+        }
+        $invoiceParts[] = $datePart;
+        $invoiceParts[] = (string)$lastNumber;
+
+        return implode('-', $invoiceParts);
     }
 
     /**
-     * Updates only the date portion of an existing invoice number.
+     * Actualiza solo la porción de la fecha de un número de factura existente.
+     * Maneja números de factura con o sin prefijo.
      *
-     * @param  $newIssueDate The new issue date.
-     * @return string|null The new invoice number with the updated date, or null if the format is incorrect.
+     * @param \DateTimeInterface $newIssueDate La nueva fecha de emisión.
+     * @return string|null El nuevo número de factura con la fecha actualizada, o null si el formato es incorrecto.
      */
-    protected function updateInvoiceNumberDate($newIssueDate): ?string
+    protected function updateInvoiceNumberDate(\DateTimeInterface $newIssueDate): ?string
     {
         if (empty($this->invoice_number)) {
+            Log::debug("UpdateInvoiceNumberDate: El número de factura actual está vacío. No se puede actualizar la fecha.");
             return null;
         }
 
-        // Split the existing invoice number into its parts
         $parts = explode('-', $this->invoice_number);
+        $numParts = count($parts);
 
-        if (count($parts) !== 3) {
-            // The invoice number format is not as expected
-            \Log::warning("The invoice number '{$this->invoice_number}' is not in the expected format to update the date.");
+        // Necesitamos al menos 2 partes (Fecha-Numero) o 3+ partes (Prefijo-Fecha-Numero o PrefijoConGuiones-Fecha-Numero)
+        if ($numParts < 2) {
+            Log::warning("UpdateInvoiceNumberDate: El número de factura '{$this->invoice_number}' tiene muy pocas partes ({$numParts}) para actualizar la fecha. Se esperaban al menos 2 (Fecha-Numero).");
             return null;
         }
 
-        $prefix = $parts[0];
-        // $oldDatePart = $parts[1];
-        $lastNumber = $parts[2];
+        // La última parte siempre es el número incremental.
+        $incrementalNumber = $parts[$numParts - 1];
+        // La penúltima parte se asume que es la fecha.
+        $oldDatePart = $parts[$numParts - 2];
 
-        // Format the new date part
-        $newDatePart = $newIssueDate->format('Ymd');
+        // Validación básica de las partes asumidas
+        if (!ctype_digit($incrementalNumber)) {
+            Log::warning("UpdateInvoiceNumberDate: La parte incremental '{$incrementalNumber}' del número de factura '{$this->invoice_number}' no es numérica.");
+            return null;
+        }
+        // Puedes añadir una validación más estricta para oldDatePart si es necesario,
+        // por ejemplo, strlen($oldDatePart) === 8 && ctype_digit($oldDatePart)
+        // pero como solo la vamos a reemplazar, nos enfocamos en la estructura.
 
-        // Reconstruct the invoice number with the new date
-        $updatedInvoiceNumber = sprintf('%s-%s-%s', $prefix, $newDatePart, $lastNumber);
+        // Todas las partes antes de las últimas dos (fecha y número) forman el prefijo (si existe).
+        $prefixSegments = array_slice($parts, 0, $numParts - 2);
 
-        return $updatedInvoiceNumber;
+        $newDateFormatted = $newIssueDate->format('Ymd');
+
+        $newInvoiceParts = [];
+
+        if (!empty($prefixSegments)) {
+            $prefix = implode('-', $prefixSegments);
+            // Solo añadir el prefijo si, después de reconstruirlo, no es una cadena vacía.
+            // Esto maneja correctamente el caso de un número original como "-FECHA-NUMERO" (prefijo vacío).
+            if (trim($prefix) !== "") {
+                $newInvoiceParts[] = trim($prefix);
+            }
+        }
+
+        $newInvoiceParts[] = $newDateFormatted;
+        $newInvoiceParts[] = $incrementalNumber;
+
+        return implode('-', $newInvoiceParts);
     }
 
     /**
@@ -170,11 +210,11 @@ class Invoice extends Model
     public function calculateTotals()
     {
         $subtotal = $this->services->sum(function ($service) {
-            $price = $service->pivot->price ?? 0; // Default to 0 if null
-            $quantity = $service->pivot->quantity ?? 0; // Default to 0 if null
+            $price = $service->pivot->price ?? 0;
+            $quantity = $service->pivot->quantity ?? 0;
             return $price * $quantity;
         });
-        $this->subtotal = round($subtotal, 2); // Round subtotal to 2 decimal places
+        $this->subtotal = round($subtotal, 2);
 
         $taxFactor = Setting::getTaxFactor();
 

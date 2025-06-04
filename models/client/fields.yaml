@@ -6,8 +6,8 @@ fields:
         label: Email
         span: auto
         type: email
-    whatsapp:
-        label: WhatsApp
+    phone:
+        label: Phone
         span: auto
     address:
         label: Address

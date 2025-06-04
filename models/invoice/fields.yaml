@@ -50,7 +50,7 @@ fields:
         span: full
         type: textarea
         size: tiny
-    pdf_file:
+    pdf_file@update:
         label: PDF file
         type: fileupload
         mode: file

@@ -44,8 +44,8 @@ class Client extends Model
      */
     public $rules = [
         'name'       => 'required|min:3|max:100',
-        'email'      => 'nullable|email|required_without:whatsapp|unique:davox_company_clients',
-        'whatsapp'   => 'nullable|string|required_without:email|unique:davox_company_clients',
+        'email'      => 'nullable|email|required_without:phone|unique:davox_company_clients',
+        'phone'   => 'nullable|string|required_without:email|unique:davox_company_clients',
         'address'    => 'nullable|max:255',
         'gst_number' => 'nullable|string|max:50'
     ];
@@ -58,7 +58,7 @@ class Client extends Model
     public $customMessages = [
         'name.required'             => 'El nombre del cliente es obligatorio',
         'email.required_without'    => 'Debes proporcionar al menos un email o WhatsApp',
-        'whatsapp.required_without' => 'Debes proporcionar al menos un WhatsApp o email',
+        'phone.required_without' => 'Debes proporcionar al menos un WhatsApp o email',
         'email.email'               => 'El formato del email no es válido'
     ];
 

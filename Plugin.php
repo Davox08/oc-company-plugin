@@ -6,8 +6,8 @@ use App;
 use Log;
 use Backend;
 use System\Classes\PluginBase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Config;
-
 
 /**
  * Plugin Information File
@@ -48,11 +48,9 @@ class Plugin extends PluginBase
 
     public function boot()
     {
-        // Transfer the configuration from your plugin's config/dompdf.php
-        // to the main Dompdf package configuration.
-        // This ensures Dompdf uses your custom settings from your plugin's config folder.
-        // 'davox.company::dompdf' refers to the config file at plugins/davox/company/config/dompdf.php
+        // Transfer the configuration from your plugin's config/dompdf.php to the main Dompdf package configuration.
         Config::set('dompdf', Config::get('davox.company::dompdf'));
+        $this->ensureDirectoriesExist();
     }
 
     public function registerPermissions()
@@ -125,5 +123,32 @@ class Plugin extends PluginBase
                 ]
             ]
         ];
+    }
+
+    /**
+     * Ensures that the required directories for dompdf exist.
+     */
+    protected function ensureDirectoriesExist()
+    {
+        $directories = [
+            storage_path('app/davox/company/fonts'),
+            storage_path('app/davox/company/font_cache'),
+            storage_path('temp/dompdf'),
+            // storage_path('logs') ya debería existir, pero dompdf.log se creará si hay logs.
+        ];
+
+        foreach ($directories as $path) {
+            if (!File::isDirectory($path)) {
+                try {
+                    // Creamos el directorio recursivamente con permisos 0775
+                    // 0775: rwxrwxr-x (dueño: leer, escribir, ejecutar; grupo: leer, escribir, ejecutar; otros: leer, ejecutar)
+                    // El último parámetro 'true' es para forzar la creación si es necesario (aunque generalmente no lo es si los permisos base son correctos)
+                    File::makeDirectory($path, 0775, true, true);
+                } catch (\Exception $e) {
+                    // Opcional: Registrar un error si no se pudo crear el directorio
+                    Log::error("Error creating directory {$path} for Davox.Company plugin: " . $e->getMessage());
+                }
+            }
+        }
     }
 }

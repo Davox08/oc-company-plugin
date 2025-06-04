@@ -41,6 +41,13 @@ tabs:
             type: text
             span: left
 
+        company_final_text:
+            label: Mensaje final
+            tab: Empresa
+            type: textarea
+            size: tiny
+            span: full
+
         default_tax_rate:
             label: Tasa de Impuesto (%)
             tab: Facturación

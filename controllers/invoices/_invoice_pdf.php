@@ -1,179 +1,505 @@
-<?php
-// plugins/davox/company/controllers/invoices/_invoice_pdf.htm
-
-// Las variables pasadas al makePartial están disponibles directamente
-// $invoice
-// $company
-
-// Asegúrate de que las relaciones estén cargadas, si no lo están en el controlador:
-// if (!isset($invoice->client)) $invoice->load('client');
-// if (!isset($invoice->services)) $invoice->load('services');
-
-?>
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #<?= e($invoice->invoice_number) ?></title>
-    <style>
-        /* Global Styles */
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Invoice #<?= e($invoice->invoice_number ?: $invoice->id) ?></title>
+    <style type="text/css">
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: normal;
+            font-weight: 400;
+            /* Asegúrate de que esta ruta sea accesible para DomPDF, idealmente una ruta absoluta */
+            src: url('<?= storage_path('app/davox/company/fonts/OpenSans-Regular.ttf') ?>');
+        }
+
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: italic;
+            font-weight: 400;
+            src: url('<?= storage_path('app/davox/company/fonts/OpenSans-Italic.ttf') ?>');
+        }
+
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: normal;
+            font-weight: 700;
+            src: url('<?= storage_path('app/davox/company/fonts/OpenSans-Bold.ttf') ?>');
+        }
+
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: italic;
+            font-weight: 700;
+            src: url('<?= storage_path('app/davox/company/fonts/OpenSans-BoldItalic.ttf') ?>');
+        }
+
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: normal;
+            font-weight: 800;
+            /* ExtraBold */
+            src: url('<?= storage_path('app/davox/company/fonts/OpenSans-ExtraBold.ttf') ?>');
+        }
+
+        @font-face {
+            font-family: 'Open Sans';
+            font-style: italic;
+            font-weight: 800;
+            /* ExtraBold Italic */
+            src: url('<?= storage_path('app/davox/company/fonts/OpenSans-ExtraBoldItalic.ttf') ?>');
+        }
+
+        @page {
+            margin: 0;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20mm; /* A4 margins */
+            font-family: 'Open Sans', sans-serif;
             font-size: 10pt;
-        }
-        .container {
-            width: 100%;
-            margin: 0 auto;
-        }
-        .header, .footer {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .header h1 {
+            color: #333132;
             margin: 0;
-            font-size: 24pt;
-            color: #333;
+            padding: 0;
+            line-height: 1.2;
+            /* Ligero ajuste para legibilidad general */
         }
-        .invoice-details, .bill-to {
-            margin-bottom: 20px;
-            overflow: hidden; /* Clearfix */
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1;
         }
-        .invoice-details .left, .invoice-details .right,
-        .bill-to .left, .bill-to .right {
-            float: left;
-            width: 50%;
+
+        strong,
+        b {
+            font-weight: 700;
         }
-        .invoice-details .right, .bill-to .right {
-            text-align: right;
+
+        em,
+        i {
+            font-style: italic;
         }
-        .section-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #555;
+
+        /* Header */
+        .header {
+            margin-top: 1cm;
+            margin-bottom: 0.5cm;
+            text-align: center;
         }
-        table {
+
+        .header__image {
+            width: 7cm;
+            height: auto;
+        }
+
+        /* Fin Header */
+
+        /* Invoice */
+        .invoice-container {
+            background-color: #eff8fd;
+            padding-top: 0.01cm;
+            padding-bottom: 0.01cm;
+        }
+
+        /* Fin Invoice */
+
+        /* Details Section*/
+        .details-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
         }
-        table th, table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+
+        .details-table td {
+            padding: 0;
+        }
+
+        .details-cell-content {
+            width: 30%;
+            vertical-align: top;
+            border-bottom: 0.1cm solid #333132;
+            padding-bottom: 0.5cm;
+        }
+
+        .details-cell-billto {
+            width: 40%;
+            vertical-align: top;
+            padding-left: 0.5cm;
+            padding-right: 0.5cm;
+            padding-bottom: 0.5cm;
+            border-bottom: 0.1cm solid #00aeef;
+        }
+
+        .details-cell-date {
+            width: 30%;
+            vertical-align: bottom;
+            padding-left: 0.5cm;
+            border-bottom: 0.1cm solid #00aeef;
+            padding-bottom: 0.5cm;
             text-align: left;
         }
-        table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
+
+        .invoice-title {
+            font-size: 28pt;
+            font-weight: 800;
+            color: #333132;
+            line-height: 1;
+            margin: 0 0 0.1cm 1.5cm;
         }
-        .text-right {
+
+        .invoice-number {
+            font-size: 10pt;
+            line-height: 1;
+            font-weight: 400;
+            color: #333132;
+            margin: 0 0 0 1.5cm;
+            padding: 0;
+        }
+
+        .bill-to__title {
+            font-size: 10pt;
+            font-weight: 800;
+            color: #231f20;
+            margin-bottom: 0.2cm;
+            padding-top: 0.2cm;
+        }
+
+        .bill-to__list {
+            margin: 0 0 0.5cm 0;
+            padding: 0;
+            list-style: none;
+            font-size: 9pt;
+        }
+
+        .bill-to__item {
+            margin: 0;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .bill-to__item strong {
+            font-weight: 700;
+        }
+
+
+        .date__content {
+            font-size: 9pt;
+            text-transform: uppercase;
+            color: #333132;
+            margin: 0 0 0.5cm 0;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .date__content strong {
+            font-weight: 800;
+            color: #333132;
+        }
+
+        /* Fin Details Section */
+
+        /* Services Table */
+        .services {
+            width: 70%;
+            margin: 0 0 0 30%;
+            border-collapse: collapse;
+            border-bottom: #00aeef solid 0.1cm;
+        }
+
+        .services-header__row th {
+            text-align: left;
+            padding: 0.5cm 0.25cm 0.25cm;
+            border-bottom: 0.05cm solid #231f20;
+            font-size: 10pt;
+            font-weight: 700;
+            color: #333132;
+            text-transform: uppercase;
+        }
+
+        .services-header__item.qty,
+        .services-header__item.price,
+        .services-header__item.total {
             text-align: right;
         }
-        .totals-table {
-            width: 40%; /* Adjust as needed */
-            float: right; /* To align to the right */
-            border: none;
+
+        .services-header__item.total {
+            padding-right: 1.5cm;
         }
-        .totals-table td {
-            border: none;
-            padding: 4px 8px;
+
+        .services-body__row td {
+            padding: 0.2cm;
+            border-bottom: 0.01cm solid #a2bdcc;
+            vertical-align: top;
         }
-        .totals-table tr.total-row td {
-            font-weight: bold;
-            border-top: 1px solid #ccc;
-        }
-        .company-info {
-            clear: both; /* Ensure it's below floats */
-            margin-top: 30px;
-            text-align: center;
-            font-size: 9pt;
-            color: #666;
-        }
-        .footer-contact {
-            margin-top: 20px;
-            text-align: center;
+
+        .services-body__item h3 {
             font-size: 10pt;
-            color: #333;
+            font-weight: 700;
+            margin-bottom: 0.05cm;
+            line-height: 1;
         }
+
+        .services-body__item p {
+            font-size: 9pt;
+            color: #333132;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .services-body__row td.qty,
+        .services-body__row td.price,
+        .services-body__row td.total {
+            text-align: right;
+        }
+
+        .services-body__item.total {
+            padding-right: 1.5cm;
+        }
+
+        .services-body__row.empty {
+            height: 0.5cm;
+        }
+
+        /* Fin Services Table */
+
+        /* Totals Table */
+        .totals {
+            width: auto;
+            float: right;
+            margin-top: 0.5cm;
+            border-collapse: collapse;
+            clear: both;
+        }
+
+        .totals__row td {
+            padding: 0.15cm 1.5cm;
+            font-size: 10pt;
+            font-weight: 700;
+        }
+
+        .totals__row td:first-child {
+            text-align: right;
+            color: #333132;
+        }
+
+        .totals__row td:last-child {
+            text-align: right;
+            color: #333132;
+            padding-right: 1.5cm;
+        }
+
+        .totals__row.total-final td {
+            font-size: 11pt;
+            font-weight: 800;
+            color: #ffffff;
+            background-color: #00aeef;
+            padding-top: 0.2cm;
+            padding-bottom: 0.2cm;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        /* Fin Totals Table */
+
+        /* Clearfix para después de los totales si es necesario */
+        .clearfix {
+            clear: both;
+            height: 0;
+            line-height: 0;
+            font-size: 0;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            padding: 0;
+            padding-bottom: 1cm;
+            font-size: 8pt;
+            color: #333132;
+            line-height: 1;
+        }
+
+        .footer-content {
+            width: 100%;
+            text-align: center;
+        }
+
+        .company__name-footer {
+            font-size: 10pt;
+            font-weight: 800;
+            margin-bottom: 0.25cm;
+            text-align: center;
+        }
+
+        .footer-details-table {
+            width: auto;
+            margin-left: auto;
+            margin-right: auto;
+            border-collapse: collapse;
+        }
+
+        .footer-details-table td {
+            padding-top: 0.05cm;
+            padding-bottom: 0.05cm;
+            font-size: 7pt;
+            line-height: 1.3;
+            color: #333132;
+        }
+
+        .footer-label-cell {
+            font-weight: 700;
+            text-align: right;
+            padding-right: 8px;
+            white-space: nowrap;
+        }
+
+        .footer-value-cell {
+            text-align: left;
+        }
+        .company-final-text {
+            margin-top: 0.5cm;
+            font-size: 9pt;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* Fin Footer */
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Invoice</h1>
-            <h2>#<?= e($invoice->invoice_number) ?></h2>
-        </div>
-
-        <div class="invoice-details">
-            <div class="left">
-                <p class="section-title">Bill to</p>
-                <p><strong><?= e($invoice->client->name) ?></strong></p>
-                <p><?= e($invoice->client->email) ?></p>
-                <p><?= e($invoice->client->address) ?></p>
-            </div>
-            <div class="right">
-                <p class="section-title">DATE:</p>
-                <p><?= e(date('M jS, Y', strtotime($invoice->issue_date))) ?></p>
-            </div>
-        </div>
-
-        <table>
-            <thead>
+    <div class="header">
+        <?php if (!empty($company['logo_image'])): ?>
+            <img class="header__image" src="<?= e($company['logo_image']) ?>" alt="<?= e($company['name']) ?>">
+        <?php endif; ?>
+    </div>
+    <div class="invoice-container">
+        <div class="details">
+            <table class="details-table">
                 <tr>
-                    <th>ITEM DESCRIPTION</th>
-                    <th>QTY</th>
-                    <th>PRICE</th>
-                    <th>TOTAL</th>
+                    <td class="details-cell-content">
+                        <h1 class="invoice-title">Invoice</h1>
+                        <p class="invoice-number">#<?= e($invoice->invoice_number ?: $invoice->id) ?></p>
+                    </td>
+                    <td class="details-cell-billto">
+                        <h2 class="bill-to__title">Bill to</h2>
+                        <ul class="bill-to__list">
+                            <li class="bill-to__item">
+                                <strong><?= e($invoice->client->name) ?></strong>
+                            </li>
+                            <?php if (!empty($invoice->client->phone)): ?>
+                                <li class="bill-to__item"><?= e($invoice->client->phone) ?></li>
+                            <?php endif; ?>
+                            <?php if (!empty($invoice->client->email)): ?>
+                                <li class="bill-to__item"><?= e($invoice->client->email) ?></li>
+                            <?php endif; ?>
+                            <?php if (!empty($invoice->client->address)): ?>
+                                <li class="bill-to__item"><?= e($invoice->client->address) ?></li>
+                            <?php endif; ?>
+                            <?php if (!empty($invoice->client->gst)): ?>
+                                <li class="bill-to__item">GST: <?= e($invoice->client->gst) ?></li>
+                            <?php endif; ?>
+                        </ul>
+                    </td>
+                    <td class="details-cell-date">
+                        <p class="date__content">
+                            <strong>DATE</strong> : <?= e($invoice->issue_date->format('F jS, Y')) ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <table class="services">
+            <thead class="services-header">
+                <tr class="services-header__row">
+                    <th class="services-header__item">Service</th>
+                    <th class="services-header__item qty">Qty</th>
+                    <th class="services-header__item price">Price</th>
+                    <th class="services-header__item total">Total</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="services-body">
                 <?php foreach ($invoice->services as $service): ?>
-                    <tr>
-                        <td>
-                            <strong><?= e($service->name) ?></strong><br>
-                            <?php if (isset($service->pivot->description) && $service->pivot->description): ?>
-                                <?= e($service->pivot->description) ?>
-                            <?php elseif (isset($service->description) && $service->description): ?>
-                                <?= e($service->description) ?>
+                    <tr class="services-body__row">
+                        <td class="services-body__item">
+                            <h3><?= e($service->name) ?></h3>
+                            <?php if (!empty($service->description)): ?>
+                                <p><?= nl2br(e($service->description)) ?></p>
                             <?php endif; ?>
                         </td>
-                        <td><?= e($service->pivot->quantity) ?></td>
-                        <td>$<?= e(number_format($service->pivot->price, 2)) ?></td>
-                        <td class="text-right">$<?= e(number_format($service->pivot->quantity * $service->pivot->price, 2)) ?></td>
+                        <td class="services-body__item qty">
+                            <?= e($service->pivot->quantity) ?>
+                        </td>
+                        <td class="services-body__item price">$<?= number_format($service->pivot->price, 2) ?></td>
+                        <td class="services-body__item total">$<?= number_format($service->pivot->price * $service->pivot->quantity, 2) ?></td>
                     </tr>
                 <?php endforeach; ?>
+
+                <?php
+                $numberOfServices = count($invoice->services);
+                $minRowsInTable = 5;
+                $emptyRowsToAdd = max(0, $minRowsInTable - $numberOfServices);
+                ?>
+                <?php for ($i = 0; $i < $emptyRowsToAdd; $i++): ?>
+                    <tr class="services-body__row empty">
+                        <td class="service-body__item">&nbsp;</td>
+                        <td class="service-body__item qty">&nbsp;</td>
+                        <td class="service-body__item price">&nbsp;</td>
+                        <td class="service-body__item total">&nbsp;</td>
+                    </tr>
+                <?php endfor; ?>
             </tbody>
         </table>
-
-        <table class="totals-table">
+        <table class="totals">
             <tbody>
-                <tr>
+                <tr class="totals__row">
                     <td>Subtotal</td>
-                    <td class="text-right">$<?= e(number_format($invoice->subtotal, 2)) ?></td>
+                    <td>$<?= number_format($invoice->subtotal, 2) ?></td>
                 </tr>
-                <tr>
-                    <td>GST (5%)</td>
-                    <td class="text-right">$<?= e(number_format($invoice->tax, 2)) ?></td>
+                <tr class="totals__row">
+                    <td>GST (<?= e($company['tax_rate']) ?>%)</td>
+                    <td>$<?= number_format($invoice->tax, 2) ?></td>
                 </tr>
-                <tr class="total-row">
+                <tr class="totals__row total-final">
                     <td>Total</td>
-                    <td class="text-right">$<?= e(number_format($invoice->total, 2)) ?></td>
+                    <td>$<?= number_format($invoice->total, 2) ?></td>
                 </tr>
             </tbody>
         </table>
-
-        <div class="company-info">
-            <h3><?= e($company['name']) ?></h3>
-            <p>ADDRESS <?= e($company['address']) ?></p>
-            <p>GST <?= e($company['gst']) ?></p>
-            <p>PHONE <?= e($company['phone']) ?></p>
-            <p>EMAIL <?= e($company['email']) ?></p>
-        </div>
-
-        <div class="footer-contact">
-            <p>If you have any questions, please contact us!</p>
+        <div class="clearfix"></div>
+    </div>
+    </div>
+    <div class="footer">
+        <div class="footer-content">
+            <h5 class="company__name-footer"><?= e($company['name']) ?></h5>
+            <div class="company-details-footer">
+                <table class="footer-details-table">
+                    <tr>
+                        <td class="footer-label-cell">ADDRESS</td>
+                        <td class="footer-value-cell"><?= e($company['address']) ?></td>
+                    </tr>
+                    <tr>
+                        <td class="footer-label-cell">GST</td>
+                        <td class="footer-value-cell"><?= e($company['gst']) ?></td>
+                    </tr>
+                    <tr>
+                        <td class="footer-label-cell">PHONE</td>
+                        <td class="footer-value-cell"><?= e($company['phone']) ?></td>
+                    </tr>
+                    <tr>
+                        <td class="footer-label-cell">EMAIL</td>
+                        <td class="footer-value-cell"><?= e($company['email']) ?></td>
+                    </tr>
+                </table>
+            </div>
+            <p class="company-final-text"><?= e($company['final_text']) ?></p>
         </div>
     </div>
 </body>

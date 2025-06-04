@@ -7,7 +7,7 @@ columns:
         label: Email
         type: text
         searchable: true
-    whatsapp:
+    phone:
         label: WhatsApp
         type: text
         searchable: true

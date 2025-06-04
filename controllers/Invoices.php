@@ -66,11 +66,14 @@ class Invoices extends Controller
         $data = [
             'invoice' => $invoice,
             'company' => [
-                'name'    => $companySettings->company_name,
-                'address' => $companySettings->company_address,
-                'gst'     => $companySettings->company_gst,
-                'phone'   => $companySettings->company_phone,
-                'email'   => $companySettings->company_email,   // No tienes email en tu modelo Setting, así que lo dejamos fijo.
+                'logo_image'    => $companySettings->company_logo->getThumbUrl(300, null, ['mode' => 'crop', 'quality' => 90]),
+                'name'          => $companySettings->company_name,
+                'address'       => $companySettings->company_address,
+                'gst'           => $companySettings->company_gst,
+                'phone'         => $companySettings->company_phone,
+                'email'         => $companySettings->company_email,
+                'tax_rate'      => $companySettings->default_tax_rate,
+                'final_text'    => $companySettings->company_final_text
             ]
         ];
 
@@ -87,7 +90,7 @@ class Invoices extends Controller
 
             $file = (new File)->fromData($pdfContent, $filename);
             $invoice->pdf_file = $file;
-            $invoice->save(); // Guarda el modelo de factura para persistir el cambio de relación y el archivo.
+            $invoice->save();
 
             // Verificar si el archivo se adjuntó correctamente
             if (!$invoice->pdf_file || !$invoice->pdf_file->exists) {

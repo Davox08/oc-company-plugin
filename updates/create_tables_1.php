@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->nullable()->index();
             $table->string('email')->nullable()->index();
-            $table->string('whatsapp')->nullable()->index();
+            $table->string('phone')->nullable()->index();
             $table->string('address')->nullable();
             $table->string('gst')->nullable();
             $table->timestamps();

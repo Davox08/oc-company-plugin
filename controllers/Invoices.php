@@ -2,17 +2,21 @@
 
 namespace Davox\Company\Controllers;
 
-use PDF; // Alias para Barryvdh\DomPDF\Facade
+use PDF;
 use Log;
 use Flash;
-// No es necesario Backend; si se usa Backend::url(), pero aquí no se usa directamente.
-// use Response; // Fachada Response, si la usas directamente
-use Exception; // Excepción genérica de PHP
+use Backend;
+use Redirect;
+use Exception;
 use BackendMenu;
-use System\Models\File; // Modelo para adjuntar archivos
+use System\Models\File;
+use ApplicationException;
 use Backend\Classes\Controller;
-use Davox\Company\Models\Invoice; // Importa tu modelo Invoice
-use Davox\Company\Models\Setting; // Importa tu modelo Setting
+use Illuminate\Support\Facades\Url;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Davox\Company\Models\Invoice;
+use Davox\Company\Models\Setting;
 
 class Invoices extends Controller
 {
@@ -56,36 +60,34 @@ class Invoices extends Controller
 
         // This script handles AJAX success events to update total fields on the invoice form.
         // It's loaded for all actions in this controller.
-        $this->addJs("/plugins/davox/company/assets/js/invoice-form-updates.js", "Davox.Company");
+        $this->addJs("/plugins/davox/company/assets/js/invoice-form-handler.js", "Davox.Company");
     }
 
     /**
      * Handles the AJAX request to export the current invoice to PDF.
-     * It generates a PDF document, attaches it to the invoice model,
-     * saves the invoice, and then provides a redirect to the public URL of the PDF.
+     * Generates a new PDF, explicitly deletes any previously attached PDF for this invoice,
+     * attaches the new PDF, saves the invoice, and then triggers a download of the PDF.
      * If 'preview' is in the input, it returns the HTML for the PDF.
      *
-     * @return array|\Illuminate\Http\Response|void Can return a redirect, HTML response, or void on error.
-     * @throws \Exception If PDF generation or file attachment fails critically.
+     * @return \Illuminate\Http\Response|array|void Can return a download response,
+     * an HTML response for preview, or void on error (Flash message is set).
      */
     public function onExportPdf()
     {
-        $isPreview = (bool) request()->boolean('preview');
+        $isPreview = request()->boolean('preview');
 
         $invoice = $this->formGetModel();
 
         if (!$invoice || !$invoice->id) {
-            Flash::error(trans('Invoice not found!'));
+            Flash::error(trans('Invoice not found or cannot be exported!'));
             return;
         }
 
-        // Eager load relations needed for the PDF.
         $invoice->load('client', 'services');
-
-        $companySettings = Setting::first();
+        $companySettings = Setting::instance();
 
         if (!$companySettings) {
-            Flash::error(trans('No company settings found!'));
+            Flash::error(trans('Company settings not found! Please configure them.'));
             return;
         }
 
@@ -111,35 +113,95 @@ class Invoices extends Controller
         $pdfHtml = $this->makePartial('invoice_pdf', $data);
 
         if ($isPreview) {
-            return \Response::make($pdfHtml); // Using Laravel's Response facade
+            return Response::make($pdfHtml);
         }
 
         try {
+            $oldPdfFile = $invoice->pdf_file ?? null;
+
             $pdf = PDF::loadHtml($pdfHtml);
-            $filename = ($invoice->invoice_number ?: 'invoice_' . $invoice->id) . '.pdf';
+
+            $baseFilename = !empty($invoice->invoice_number) ? $invoice->invoice_number : ('invoice_' . $invoice->id);
+            $safeFilename = preg_replace('/[^A-Za-z0-9\-_]/', '_', $baseFilename);
+            $filename = $safeFilename . '.pdf';
+
             $pdfContent = $pdf->output();
 
-            $file = (new File)->fromData($pdfContent, $filename);
-            $invoice->pdf_file = $file; // Attach the file
-            $invoice->save(); // Save the invoice to persist the file attachment relation
+            $newPdfSystemFile = (new File)->fromData($pdfContent, $filename);
 
-            if (!$invoice->pdf_file || !$invoice->pdf_file->exists) {
-                // This exception will be caught by the catch block below.
-                throw new Exception(trans('PDF generation failed!'));
+            $invoice->pdf_file = $newPdfSystemFile;
+            $invoice->save();
+
+            if ($oldPdfFile) {
+                $currentPdfFileAfterSave = $invoice->fresh()->pdf_file;
+                if ($currentPdfFileAfterSave && $oldPdfFile->id === $currentPdfFileAfterSave->id) {
+                } else {
+                    try {
+                        $oldPdfFile->delete();
+                        Log::info("[Invoices::onExportPdf] Old PDF (ID: {$oldPdfFile->id}) explicitly deleted.");
+                    } catch (Exception $deleteException) {
+                        Log::error("[Invoices::onExportPdf] Could not explicitly delete old PDF (ID: {$oldPdfFile->id}): " . $deleteException->getMessage());
+                    }
+                }
             }
 
-            Flash::success(trans('PDF generated successfully!'));
+            if (!$invoice->pdf_file || !$invoice->pdf_file->id) {
+                throw new ApplicationException('PDF file not available for download after generation.');
+            }
 
-            $publicPdfUrl = $invoice->pdf_file->getUrl();
+            $downloadUrl = Url::route('davox.company.invoices.downloadGeneratedPdf', [
+                'invoice_id' => $invoice->id,
+                'file_id'    => $invoice->pdf_file->id
+            ]);
 
-            return ['X_OCTOBER_REDIRECT' => $publicPdfUrl];
+            Flash::success('PDF generado y adjuntado. La descarga comenzará en breve.');
 
+            return [
+                'downloadUrl' => $downloadUrl,
+            ];
         } catch (Exception $e) {
-            Log::error("[Invoices::onExportPdf] Error generating/attaching PDF for Invoice ID {$invoice->id}: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
-            Flash::error(trans('PDF generation error!') . ': ' . $e->getMessage());
-            // No return here will allow October to handle the AJAX error response,
-            // or you can return an empty array or specific error structure if your JS handles it.
-            return;
+            Log::error("[Invoices::onExportPdf] Error in onExportPdf for Invoice ID {$invoice->id}: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+            Flash::error(trans('Error generating PDF') . ': ' . $e->getMessage());
+            throw new ApplicationException(trans('Error generating PDF') . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Action method to serve a specific generated PDF for download.
+     * This method is called directly by the browser via a URL.
+     *
+     * @param int $invoiceId The ID of the Invoice model.
+     * @param int $fileId The ID of the System\Models\File record to be downloaded.
+     * @return \Symfony\Component\HttpFoundation\Response|\Illuminate\Http\RedirectResponse
+     */
+    public function downloadGeneratedPdf($invoiceId = null, $fileId = null)
+    {
+        try {
+            // findOrFail lanzará ModelNotFoundException si no se encuentra, que se captura abajo.
+            $invoice = Invoice::findOrFail((int)$invoiceId);
+
+            // Validar que el fileId es el que está actualmente adjunto a la factura.
+            if (!$invoice->pdf_file || $invoice->pdf_file->id != (int)$fileId) {
+                Log::warning("[Invoices::downloadGeneratedPdf] File ID {$fileId} no coincide con el PDF actual para Factura ID {$invoiceId}. Current PDF File ID: " . ($invoice->pdf_file->id ?? 'None'));
+                Flash::error(trans('davox.company::lang.flash.pdf_download_invalid_file', 'El archivo PDF solicitado no es válido para esta factura.'));
+                return Redirect::to(Backend::url('davox/company/invoices/update/' . $invoice->id));
+            }
+
+            // Usar el método download() del modelo File
+            Log::info("[Invoices::downloadGeneratedPdf] Sirviendo para descarga el archivo: {$invoice->pdf_file->file_name} (File ID: {$invoice->pdf_file->id}) para Factura ID {$invoiceId}");
+
+            // El método download() del modelo File ya devuelve una Symfony\Component\HttpFoundation\StreamedResponse
+            // o similar, configurada para la descarga.
+            return $invoice->pdf_file->download();
+        } catch (ModelNotFoundException $e) {
+            Log::error("[Invoices::downloadGeneratedPdf] Factura no encontrada (ID: {$invoiceId}): " . $e->getMessage());
+            Flash::error(trans('davox.company::lang.flash.invoice_not_found_download', 'Factura no encontrada para la descarga.'));
+            return Redirect::to(Backend::url('davox/company/invoices'));
+        } catch (Exception $e) {
+            Log::error("[Invoices::downloadGeneratedPdf] Error descargando PDF (InvoiceID: {$invoiceId}, FileID: {$fileId}): " . $e->getMessage());
+            Flash::error(trans('davox.company::lang.flash.pdf_download_error', 'Error al intentar descargar el PDF.') . ': ' . $e->getMessage());
+            // Redirigir a la lista de facturas en caso de un error genérico.
+            return Redirect::to(Backend::url('davox/company/invoices'));
         }
     }
 
@@ -196,7 +258,6 @@ class Invoices extends Controller
                 'totalValue'    => number_format($invoice->total, 2, '.', ''),
                 'X_DAVOX_COMPANY_TOTALS_UPDATED' => true
             ];
-
         } catch (\Exception $e) {
             // Log the full error for backend diagnosis.
             Log::error("[Invoices::onChangeServices] Critical error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine() . "\nStack trace:\n" . $e->getTraceAsString());

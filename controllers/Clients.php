@@ -5,18 +5,45 @@ namespace Davox\Company\Controllers;
 use Backend\Classes\Controller;
 use BackendMenu;
 
+/**
+ * Clients Controller
+ * Manages clients (customers) within the backend.
+ * Implements standard list and form behaviors for CRUD operations.
+ */
 class Clients extends Controller
 {
+    /**
+     * @var array Behaviors implemented by this controller.
+     * - ListController: Provides list management functionality.
+     * - FormController: Provides form creation and update functionality.
+     */
     public $implement = [
         \Backend\Behaviors\ListController::class,
         \Backend\Behaviors\FormController::class
     ];
 
+    /**
+     * @var string Configuration file for the ListController behavior.
+     * Defines columns and settings for the client list view.
+     */
     public $listConfig = 'config_list.yaml';
+
+    /**
+     * @var string Configuration file for the FormController behavior.
+     * Defines fields and settings for the client create/update form.
+     */
     public $formConfig = 'config_form.yaml';
 
+    /**
+     * @var array Permissions required to access the client management section.
+     * Users must have 'davox.company.access_clients' permission.
+     */
     public $requiredPermissions = ['davox.company.access_clients'];
 
+    /**
+     * Constructor.
+     * Sets up the backend menu context for this controller.
+     */
     public function __construct()
     {
         parent::__construct();

@@ -3,27 +3,32 @@
 namespace Davox\Company;
 
 use App;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Backend;
 use System\Classes\PluginBase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Config;
 
 /**
- * Plugin Information File
+ * Company Plugin Information File.
  *
- * @link https: //docs.octobercms.com/3.x/extend/system/plugins.html
+ * This file registers the plugin with the OctoberCMS system,
+ * handles plugin initialization, navigation, permissions, and settings.
+ *
+ * @link https://docs.octobercms.com/3.x/extend/system/plugins.html
  */
 class Plugin extends PluginBase
 {
     /**
-     * pluginDetails about this plugin.
+     * Returns information about this plugin.
+     *
+     * @return array Plugin details array.
      */
     public function pluginDetails()
     {
         return [
             'name'        => 'Company',
-            'description' => 'Professional invoicing system with Email and WhatsApp integration',
+            'description' => 'A comprehensive and professional invoicing system for OctoberCMS. Manage clients, services, and generate PDF invoices with automated calculations, customizable company settings, and dynamic updates.',
             'author'      => 'Davox',
             'icon'        => 'icon-file-text-o',
             'homepage'    => 'https://dejavuu.dobermag.com'
@@ -31,28 +36,44 @@ class Plugin extends PluginBase
     }
 
     /**
-     * Register method, called when the plugin is first registered.
+     * Registers any services or class aliases used by this plugin.
+     * This method is called once when the plugin is first registered.
+     * Here, it registers the DomPDF service provider and facade.
+     *
+     * @return void
      */
     public function register()
     {
-        // Register the Service Provider for Dompdf
-        // This ensures the Dompdf library's services are available.
-        // As per OctoberCMS documentation for using Laravel packages.
+        // Register the Service Provider for Dompdf.
+        // This ensures the Dompdf library's services are available to the application.
         App::register(\Barryvdh\DomPDF\ServiceProvider::class);
 
-        // Register the Facade alias for Dompdf
-        // This allows you to use `PDF::` syntax in your code.
-        // As per OctoberCMS documentation for using Laravel packages.
+        // Register the Facade alias for Dompdf.
+        // This allows using the `PDF::` shorthand syntax for the Dompdf facade.
         App::registerClassAlias('PDF', \Barryvdh\DomPDF\Facade\Pdf::class);
     }
 
+    /**
+     * Boots (initializes) the plugin.
+     * This method is called right before a request is routed.
+     * It sets up plugin configurations and ensures necessary directories exist.
+     *
+     * @return void
+     */
     public function boot()
     {
-        // Transfer the configuration from your plugin's config/dompdf.php to the main Dompdf package configuration.
-        Config::set('dompdf', Config::get('davox.company::dompdf'));
+        Config::set('dompdf', Config::get('davox.company::dompdf', []));
+
+        // Ensure required directories for functionalities like PDF font storage exist.
         $this->ensureDirectoriesExist();
     }
 
+    /**
+     * Registers user permissions offered by this plugin.
+     * These permissions can be managed in the backend settings area.
+     *
+     * @return array Array of permission codes and their descriptions.
+     */
     public function registerPermissions()
     {
         return [
@@ -69,28 +90,38 @@ class Plugin extends PluginBase
                 'tab'   => 'Company'
             ],
             'davox.company.access_settings' => [
-                'label' => 'Gestionar configuración de impuestos',
-                'tab' => 'Company'
-            ]
+                'label' => 'Manage company & tax settings',
+                'tab'   => 'Company'
+            ],
         ];
     }
 
+    /**
+     * Registers a new settings page for this plugin in the backend.
+     *
+     * @return array Settings page definition.
+     */
     public function registerSettings()
     {
         return [
             'company_settings' => [
-                'label' => 'Configuración de Facturación',
-                'description' => 'Personalice tasas y formatos',
-                'category' => 'Facturación',
-                'icon' => 'icon-percent',
-                'class' => \Davox\Company\Models\Setting::class,
-                'order' => 100,
-                'keywords' => 'impuesto factura configuración',
-                'permissions' => ['davox.company.manage_settings']
+                'label'       => 'Billing Configuration',
+                'description' => 'Customize tax rates, invoice formats, and company details.',
+                'category'    => 'Billing',
+                'icon'        => 'icon-cog',
+                'class'       => \Davox\Company\Models\Setting::class,
+                'order'       => 100,
+                'keywords'    => 'tax invoice configuration settings company',
+                'permissions' => ['davox.company.access_settings']
             ]
         ];
     }
 
+    /**
+     * Registers backend navigation menu items for this plugin.
+     *
+     * @return array Navigation structure.
+     */
     public function registerNavigation()
     {
         return [
@@ -104,7 +135,7 @@ class Plugin extends PluginBase
                 'sideMenu' => [
                     'invoices' => [
                         'label'       => 'Invoices',
-                        'icon'        => 'icon-file-text',
+                        'icon'        => 'icon-file-text-o',
                         'url'         => Backend::url('davox/company/invoices'),
                         'permissions' => ['davox.company.access_invoices']
                     ],
@@ -126,27 +157,33 @@ class Plugin extends PluginBase
     }
 
     /**
-     * Ensures that the required directories for dompdf exist.
+     * Ensures that required directories for plugin functionalities (e.g., DomPDF fonts) exist.
+     * Creates them if they are not found.
+     * This method is called during the plugin's boot process.
+     *
+     * @return void
      */
-    protected function ensureDirectoriesExist()
+    protected function ensureDirectoriesExist(): void
     {
         $directories = [
-            storage_path('app/davox/company/fonts'),
-            storage_path('app/davox/company/font_cache'),
-            storage_path('temp/dompdf'),
-            // storage_path('logs') ya debería existir, pero dompdf.log se creará si hay logs.
+            storage_path('app/davox/company/fonts'),      // For custom PDF fonts
+            storage_path('app/davox/company/font_cache'), // For DomPDF's font cache
+            storage_path('temp/dompdf'),                  // For DomPDF temporary files
         ];
 
         foreach ($directories as $path) {
             if (!File::isDirectory($path)) {
                 try {
-                    // Creamos el directorio recursivamente con permisos 0775
-                    // 0775: rwxrwxr-x (dueño: leer, escribir, ejecutar; grupo: leer, escribir, ejecutar; otros: leer, ejecutar)
-                    // El último parámetro 'true' es para forzar la creación si es necesario (aunque generalmente no lo es si los permisos base son correctos)
+                    // Create the directory recursively with 0775 permissions.
+                    // 0775: rwxrwxr-x (owner: rwx, group: rwx, other: rx)
+                    // The 'true' for recursive and 'true' for force (to try to set mode).
                     File::makeDirectory($path, 0775, true, true);
                 } catch (\Exception $e) {
-                    // Opcional: Registrar un error si no se pudo crear el directorio
-                    Log::error("Error creating directory {$path} for Davox.Company plugin: " . $e->getMessage());
+                    // Log an error if directory creation fails.
+                    Log::error(
+                        "[Davox.Company Plugin] Failed to create directory: {$path}. Error: " . $e->getMessage(),
+                        ['path' => $path, 'exception' => $e]
+                    );
                 }
             }
         }

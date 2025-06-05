@@ -43,7 +43,7 @@
             </button>
             <button
                 type="button"
-                class="btn btn-default oc-icon-file-pdf-o"
+                class="btn btn-danger oc-icon-file-pdf-o"
                 data-request="onExportPdf"
                 data-load-indicator="Generating PDF..."
                 data-request-redirect="0"
@@ -51,7 +51,7 @@
                 Export to PDF
             </button>
 
-            <button
+            <!-- <button
                 type="button"
                 class="btn btn-info oc-icon-code" {{-- Clase 'btn-info' para un color diferente, 'oc-icon-code' para el icono --}}
                 data-request="onExportPdf" {{-- Llama al mismo método AJAX del controlador --}}
@@ -59,7 +59,7 @@
                 data-request-data="preview: 1" {{-- ¡Pasa el parámetro 'preview' a tu controlador! --}}
                 data-request-success="window.open('', '_blank').document.write(data); $.oc.flashMsg({text: 'HTML Preview generated!', class: 'success'});">
                 Preview HTML
-            </button>
+            </button> -->
             <span class="btn-text">
                 <span class="button-separator"><?= __("or") ?></span>
                 <a

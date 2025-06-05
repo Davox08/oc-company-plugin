@@ -4,32 +4,34 @@ namespace Davox\Company\Models;
 
 use Model;
 
+// use Illuminate\Support\Facades\Log;
+
 /**
- * Application Model
+ * Client Model.
+ * Represents a client (customer) in the system.
+ * Stores client information and relationships, such as associated invoices.
  *
  * @link https://docs.octobercms.com/3.x/extend/system/models.html
  */
 class Client extends Model
 {
     /**
-     * Traits
-     * @link https://docs.octobercms.com/3.x/extend/database/traits.html#validation
-     *
+     * @var array Traits used by this model.
+     * - Validation: Enables model attribute validation.
+     * - SoftDelete: Enables soft deleting records instead of permanent removal.
+     * @link https://docs.octobercms.com/3.x/extend/database/traits.html
      */
     use \October\Rain\Database\Traits\Validation;
     use \October\Rain\Database\Traits\SoftDelete;
 
     /**
-     * Defining model
-     * @link https://docs.octobercms.com/3.x/extend/settings/model-settings.html#model-class-definition
-     *
+     * @var string The database table used by the model.
      */
     protected $table = 'davox_company_clients';
 
     /**
-     * Dates
-     * @link https://docs.octobercms.com/3.x/extend/system/models.html#supported-properties
-     *
+     * @var array Attributes that should be mutated to dates.
+     * Ensures these fields are treated as Carbon\Carbon instances.
      */
     protected $dates = [
         'created_at',
@@ -38,38 +40,42 @@ class Client extends Model
     ];
 
     /**
-     * Validation rules
+     * @var array Validation rules for the model attributes.
+     * These rules are automatically_context_replied when saving the model.
      * @link https://docs.octobercms.com/3.x/extend/database/traits.html#validation
-     * @var array $rules
      */
     public $rules = [
-        'name'       => 'required|min:3|max:100',
-        'email'      => 'nullable|email|required_without:phone|unique:davox_company_clients',
-        'phone'   => 'nullable|string|required_without:email|unique:davox_company_clients',
-        'address'    => 'nullable|max:255',
-        'gst_number' => 'nullable|string|max:50'
+        'name'    => 'required|min:3|max:100',
+        'email'   => 'nullable|email|required_without:phone|unique:davox_company_clients,email',
+        'phone'   => 'nullable|string|max:25|required_without:email|unique:davox_company_clients,phone',
+        'address' => 'nullable|string|max:255',
+        'gst'     => 'nullable|string|max:50|unique:davox_company_clients,gst',
     ];
 
     /**
-     * Validation custom messages
+     * @var array Custom validation messages for the defined rules.
+     * These provide more user-friendly feedback.
      * @link https://docs.octobercms.com/3.x/extend/database/traits.html#custom-error-messages
-     * @var array $rules
      */
     public $customMessages = [
-        'name.required'             => 'El nombre del cliente es obligatorio',
-        'email.required_without'    => 'Debes proporcionar al menos un email o WhatsApp',
-        'phone.required_without' => 'Debes proporcionar al menos un WhatsApp o email',
-        'email.email'               => 'El formato del email no es válido'
+        'name.required'          => 'The client name is required.',
+        'email.required_without' => 'You must provide at least an email or phone.',
+        'phone.required_without' => 'You must provide at least an email or phone.',
+        'email.email'            => 'The email format is invalid.',
+        'email.unique'           => 'This email has already been registered by another client.',
+        'phone.unique'           => 'This phone has already been registered by another client.'
     ];
 
     /**
-     * Relations - One to many
+     * @var array Defines the "has many" relationships for this model.
+     * 'invoices' relationship: A client can have many invoices.
      * @link https://docs.octobercms.com/3.x/extend/database/relations.html#one-to-many
-     * Client has many invoices
      */
     public $hasMany = [
         'invoices' => [
-            \Davox\Company\Models\Invoice::class
+            \Davox\Company\Models\Invoice::class,
+            'key'      => 'client_id',
+            'otherKey' => 'id'
         ]
     ];
 }

@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('davox_company_clients', function(Blueprint $table) {
             $table->id();
             $table->string('name')->nullable()->index();
-            $table->string('email')->nullable()->index();
-            $table->string('phone')->nullable()->index();
+            $table->string('email')->unique()->nullable()->index();
+            $table->string('phone')->unique()->nullable()->index();
             $table->string('address')->nullable();
-            $table->string('gst')->nullable();
+            $table->string('gst')->unique()->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -35,7 +35,6 @@ return new class extends Migration
             $table->decimal('subtotal', 10, 2)->nullable();
             $table->decimal('tax', 10, 2)->nullable();
             $table->decimal('total', 10, 2)->nullable();
-            $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -48,6 +47,7 @@ return new class extends Migration
             $table->integer('quantity')->default(1);
             $table->integer('sort_order')->default(0);
             $table->index(['invoice_id', 'service_id']);
+            $table->timestamps();
         });
 
     }

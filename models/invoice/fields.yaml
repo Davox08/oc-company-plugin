@@ -1,19 +1,22 @@
 fields:
     issue_date@create:
         label: Issue date
-        span: full
+        span: row
+        spanClass: col-12
         type: datepicker
         mode: date
         default: now
         format: "d/m/Y"
     invoice_number@update:
         label: Invoice number
-        span: auto
+        span: row
+        spanClass: col-12 col-md-6
         disabled: true
         cssClass: "text-muted"
     issue_date@update:
         label: Issue date
-        span: auto
+        span: row
+        spanClass: col-12 col-md-6
         type: datepicker
         mode: date
         default: now
@@ -21,35 +24,35 @@ fields:
         useTimezone: true
     client@update:
         label: Client
-        span: full
+        span: row
+        spanClass: col-12
         type: relation
         nameFrom: name
     services@update:
         label: Services
-        span: full
+        span: row
+        spanClass: col-12
         type: relation
         nameFrom: name
         changeHandler: onChangeServices
     subtotal@update:
         label: Subtotal
-        span: auto
+        span: row
+        spanClass: col-12 col-md-4
         type: number
         disabled: true
     tax@update:
         label: GST
-        span: auto
+        span: row
+        spanClass: col-12 col-md-4
         type: number
         disabled: true
     total@update:
         label: Total
-        span: full
+        span: row
+        spanClass: col-12 col-md-4
         type: number
         disabled: true
-    notes@update:
-        label: Notes
-        span: full
-        type: textarea
-        size: tiny
     pdf_file@update:
         label: PDF file
         type: fileupload

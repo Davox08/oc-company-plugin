@@ -40,6 +40,18 @@ class Client extends Model
     ];
 
     /**
+     * @var array Attributes that should be converted from empty strings to NULL on save.
+     * This is used for nullable columns with a UNIQUE database constraint to prevent
+     * "duplicate entry ''" errors for multiple records with empty values.
+     */
+    // --- PASO 1: ASEGÚRATE DE QUE ESTA PROPIEDAD ESTÉ DEFINIDA EN TU CLASE ---
+    protected $nullableUniqueAttributes = [
+        'email',
+        'phone',
+        'gst'
+    ];
+
+    /**
      * @var array Validation rules for the model attributes.
      * These rules are automatically_context_replied when saving the model.
      * @link https://docs.octobercms.com/3.x/extend/database/traits.html#validation
@@ -78,4 +90,19 @@ class Client extends Model
             'otherKey' => 'id'
         ]
     ];
+
+    /**
+     * Event handler for before the model is saved.
+     * Iterates through $nullableUniqueAttributes and converts any empty string values to NULL.
+     * This prevents unique constraint violations in the database for optional fields.
+     */
+    // --- PASO 2: ASEGÚRATE DE QUE ESTE MÉTODO ESTÉ EN TU CLASE ---
+    public function beforeSave()
+    {
+        foreach ($this->nullableUniqueAttributes as $attribute) {
+            if (isset($this->attributes[$attribute]) && empty(trim($this->attributes[$attribute]))) {
+                $this->attributes[$attribute] = null;
+            }
+        }
+    }
 }
